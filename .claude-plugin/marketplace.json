@@ -1,0 +1,15 @@
+{
+  "name": "flow-market",
+  "owner": {
+    "name": "carbon"
+  },
+  "description": "project_flow 다중 세션 관제 도구 마켓플레이스",
+  "plugins": [
+    {
+      "name": "project-flow",
+      "source": "./plugin",
+      "description": "여러 Claude Code 세션의 진행 상황을 로컬 관제 대시보드(localhost:3000)로 자동 수집",
+      "version": "0.3.0"
+    }
+  ]
+}

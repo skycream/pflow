@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "T=$(ps -o tty= -p $$ | tr -d ' '); jq -c --arg t \"/dev/$T\" --arg it \"$ITERM_SESSION_ID\" '. + {tty: $t, iterm_id: $it}' | curl -s -X POST http://localhost:3000/api/hook -H 'Content-Type: application/json' -d @- > /dev/null 2>&1"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "PreToolUse": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "PostToolUse": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "PreCompact": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "Stop": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "StopFailure": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "Notification": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }]
+  }
+}

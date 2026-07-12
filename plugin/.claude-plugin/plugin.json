@@ -1,0 +1,5 @@
+{
+  "name": "project-flow",
+  "description": "여러 Claude Code 세션의 진행 상황을 로컬 관제 대시보드(localhost:3000)로 자동 수집한다. v0.1: hook 수집층. (MCP 의미층은 추후 추가)",
+  "version": "0.3.0"
+}

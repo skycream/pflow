@@ -1,0 +1,13 @@
+{
+  "_comment": "이 hooks 블록을 통솔하려는 각 프로젝트의 .claude/settings.json 에 붙여넣으세요. project_flow 대시보드(localhost:3000)가 켜져 있어야 이벤트가 수집됩니다.",
+  "hooks": {
+    "SessionStart": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "UserPromptSubmit": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "PreToolUse": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "PostToolUse": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "Stop": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "StopFailure": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "Notification": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }],
+    "SessionEnd": [{ "hooks": [{ "type": "http", "url": "http://localhost:3000/api/hook" }] }]
+  }
+}
