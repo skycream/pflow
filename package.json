@@ -1,5 +1,5 @@
 {
-  "name": "project-flow",
+  "name": "pflow",
   "version": "0.1.0",
   "private": true,
   "description": "Local mission-control dashboard for orchestrating multiple Claude Code sessions",

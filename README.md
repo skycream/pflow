@@ -1,4 +1,4 @@
-# project-flow — Claude Code 다중 세션 관제 대시보드
+# pflow — Claude Code 다중 세션 관제 대시보드
 
 > **Mission-control dashboard for running many Claude Code sessions at once.**
 > Monitor 8–10+ concurrent Claude Code sessions in one local web dashboard: see what each session just did, answer its questions with one click, inject prompts, run gated workflows, and revive dead sessions — without ever leaving the board.
@@ -25,7 +25,7 @@
 
 ```bash
 git clone <this-repo>
-cd project-flow
+cd pflow
 npm install
 npm run dev   # http://localhost:3000
 ```
@@ -35,7 +35,7 @@ npm run dev   # http://localhost:3000
 Claude Code에서 이 저장소를 마켓플레이스로 추가하고 플러그인을 설치합니다:
 
 ```
-/plugin marketplace add /path/to/project-flow
+/plugin marketplace add /path/to/pflow
 /plugin install project-flow@flow-market
 ```
 
@@ -59,7 +59,7 @@ iTerm2에서 아무 프로젝트 폴더로 이동해 `claude`를 실행하면, �
   <key>Label</key><string>com.projectflow.dashboard</string>
   <key>RunAtLoad</key><true/>
   <key>KeepAlive</key><true/>
-  <key>WorkingDirectory</key><string>/path/to/project-flow</string>
+  <key>WorkingDirectory</key><string>/path/to/pflow</string>
   <key>ProgramArguments</key><array>
     <string>/opt/homebrew/bin/npm</string><string>run</string><string>dev</string>
   </array>
