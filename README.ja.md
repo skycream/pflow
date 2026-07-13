@@ -24,6 +24,26 @@ curl -fsSL https://raw.githubusercontent.com/skycream/pflow/main/install.sh | ba
 - **ボイスノート** — 音声メモの文字起こしをトピック別に整理して閲覧（`data/voice-notes/`）
 - **自動リトライ** — レート制限などの一時エラーを自動再試行。OS 通知・タブバッジで「あなたの番」をお知らせ
 
+## 機能ツアー
+
+**🗼 全セッションを1つのボードに** — 左レールにライブ状態、右に選択セッションの全活動。
+![Board](docs/feature-board.png)
+
+**🚦 未読は光り、選択待ちは🔀、死んだセッションは💀** — 何も見逃さない。
+![Rail](docs/feature-rail.png)
+
+**❓ 質問にはボタンで回答** — 選択肢が説明付きで表示。自由テキストもその場で。
+![Question](docs/feature-question.png)
+
+**⚡ ワンクリック操作 + 注入されるプロンプトをホバーでプレビュー** — 隠れた魔法なし。
+![Quick actions](docs/feature-hint.png)
+
+**🔁 承認ゲート付きワークフロー** — Unknowns 発見フロー内蔵。
+![Workflow](docs/feature-workflow.png)
+
+**💀 セッションは死んでも会話は死なない** — ワンクリックで `claude --resume` 復活。
+![Revive](docs/feature-revive.png)
+
 ## 動作要件
 
 - **macOS** + **iTerm2**（AppleScript でセッションにプロンプトを注入します）

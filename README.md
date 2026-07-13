@@ -24,6 +24,36 @@ curl -fsSL https://raw.githubusercontent.com/skycream/pflow/main/install.sh | ba
 - **Voice notes** — Browse transcribed voice memos organized by topic (`data/voice-notes/`)
 - **Auto-retry** — Transient errors (rate limits) retry automatically. OS notifications + tab badge when a session needs you
 
+## Feature tour
+
+### 🗼 One board, every session
+![Board](docs/feature-board.png)
+Every project and session in the left rail with live status dots (working / waiting / idle / error). Header chips give you the fleet count at a glance. The selected session's full activity — request, answer, question — on the right. **You never wonder "what is session #7 doing?" again.**
+
+### 🚦 The rail tells you where you're needed
+![Rail](docs/feature-rail.png)
+Unanswered replies **glow green** until you read them. 🔀 marks a session waiting on a multiple-choice decision. Dead sessions show 💀 (struck through) instead of silently disappearing — nothing gets forgotten.
+
+### ❓ Answer Claude's questions without touching the terminal
+![Question](docs/feature-question.png)
+When Claude asks a multiple-choice question (AskUserQuestion), the options appear as buttons — with full descriptions. Click to answer. Multi-question forms are supported, and if none of the options fit, **type a free-text answer right there**.
+
+### ⚡ One-click actions — with full prompt transparency
+![Quick actions](docs/feature-hint.png)
+Continue, proceed-all, interrupt, approve, ship, /clear, /compact, model switch, PRD, design system, user test, deploy… **Hover any button and see the exact prompt it will inject** (the "입력될 프롬프트 ▸" bar) — no hidden magic.
+
+### 🔁 Gated workflows — autopilot with checkpoints
+![Workflow](docs/feature-workflow.png)
+Chain steps that run one after another; ✋ gates pause for your approval, 🔁 loops repeat per slice. The built-in **Unknowns discovery** preset (blindspot pass → interview → prototypes → plan → implementation notes → quiz) turns Fable-era best practices into one button.
+
+### 💀 Sessions die. Conversations don't.
+![Revive](docs/feature-revive.png)
+Killed a terminal? Rebooted? Dead sessions keep their place with a 💀 marker. One click (or just sending a message) revives the conversation with `claude --resume` — full context intact. Bulk-restore brings back your whole fleet after a reboot.
+
+### 📼 Voice notes, organized
+![Voice notes](docs/feature-notes.png)
+Drop transcribed voice memos into `data/voice-notes/` and browse them as tabs — with ready-to-send prompts extracted from your rambling.
+
 ## Requirements
 
 - **macOS** + **iTerm2** (prompts are injected via AppleScript)

@@ -24,6 +24,26 @@ curl -fsSL https://raw.githubusercontent.com/skycream/pflow/main/install.sh | ba
 - **语音笔记** — 按主题浏览语音备忘录的转录整理（`data/voice-notes/`）
 - **自动重试** — 速率限制等临时错误自动重试。系统通知 + 标签徽章提醒"该你了"
 
+## 功能导览
+
+**🗼 一块指挥板，所有会话** — 左栏实时状态，右侧完整活动。
+![Board](docs/feature-board.png)
+
+**🚦 未读发光、待选择标 🔀、死亡会话标 💀** — 什么都不会漏。
+![Rail](docs/feature-rail.png)
+
+**❓ 按钮回答 Claude 的提问** — 选项带完整说明，也可直接输入自由文本。
+![Question](docs/feature-question.png)
+
+**⚡ 一键操作 + 悬停预览将注入的完整提示词** — 没有隐藏魔法。
+![Quick actions](docs/feature-hint.png)
+
+**🔁 带审批门的工作流** — 内置 Unknowns 发现流程预设。
+![Workflow](docs/feature-workflow.png)
+
+**💀 会话会死，对话不死** — 一键 `claude --resume` 复活，重启后可批量恢复。
+![Revive](docs/feature-revive.png)
+
 ## 环境要求
 
 - **macOS** + **iTerm2**（通过 AppleScript 向会话注入提示词）
