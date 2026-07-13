@@ -1,10 +1,18 @@
-# pflow — Claude Code 다중 세션 관제 대시보드
+# pflow — AI 돌보미는 그만. 함대를 지휘하세요.
 
 [English](README.md) | **한국어** | [日本語](README.ja.md) | [中文](README.zh-CN.md)
 
-여러 프로젝트에서 동시에 돌아가는 Claude Code 세션들을 **하나의 로컬 웹 대시보드**에서 PM처럼 통솔합니다. 각 세션이 방금 뭘 했는지, 지금 내 응답을 기다리는지 실시간으로 보고, 클릭 한 번으로 답하거나 프롬프트를 주입합니다.
+Claude Code 세션 하나면 개발이 빨라집니다. 열 개를 띄우면? **탭 지옥**이 시작됩니다 — 터미널 탭을 오가며, 20분째 질문 하나에 멈춰 있던 세션을 뒤늦게 발견하고, 어느 세션이 뭘 했는지 놓치기 일쑤죠.
+
+**pflow는 그 혼돈을 관제탑으로 바꿉니다.** 모든 세션을 한 화면에서 실시간으로 — 방금 뭘 했는지 보고, 질문엔 클릭 한 번으로 답하고, 프롬프트를 쏘고, 승인 게이트 워크플로우를 돌리고, 재부팅 후엔 죽은 세션을 통째로 되살립니다. 터미널 탭은 더 이상 안 만져도 됩니다.
 
 ![pflow dashboard](docs/screenshot.png)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/skycream/pflow/main/install.sh | bash
+```
+
+*명령 한 줄: iTerm2·Node 확인(없으면 자동 설치) → 클론 → 의존성 설치 → 자동시작 등록 → 대시보드 오픈.*
 
 ## 주요 기능
 
@@ -24,12 +32,25 @@
 
 ## 설치
 
+**원라이너 (추천):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/skycream/pflow/main/install.sh | bash
+```
+
+iTerm2·Node 20+를 확인하고(없으면 자동 설치), `~/pflow`에 클론, 의존성 설치, LaunchAgent 등록(부팅 시 자동 시작·죽으면 재시작), 대시보드 오픈까지 한 번에 끝냅니다.
+
+<details>
+<summary>수동 설치</summary>
+
 ```bash
 git clone https://github.com/skycream/pflow
 cd pflow
 npm install
 npm run dev   # http://localhost:3000
 ```
+
+</details>
 
 ### 1) 플러그인 설치 (이벤트 수집)
 

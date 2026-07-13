@@ -1,10 +1,18 @@
-# pflow — Mission Control for Claude Code Sessions
+# pflow — Stop babysitting your AI. Run a fleet.
 
 **English** | [한국어](README.ko.md) | [日本語](README.ja.md) | [中文](README.zh-CN.md)
 
-> Run 8–10+ concurrent Claude Code sessions and control them all from one local web dashboard: see what each session just did, answer its questions with one click, inject prompts, run gated workflows, and revive dead sessions — without ever leaving the board.
+One Claude Code session makes you faster. Ten make you a **babysitter** — hopping between terminal tabs, missing the one session that's been waiting on a question for 20 minutes, losing track of what any of them just did.
+
+**pflow turns that chaos into a control tower.** Every session on one board, live. See what each one just did, answer its questions with one click, fire off prompts, run approval-gated workflows, and revive dead sessions after a reboot — without ever touching a terminal tab.
 
 ![pflow dashboard](docs/screenshot.png)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/skycream/pflow/main/install.sh | bash
+```
+
+*One command: checks & auto-installs iTerm2 and Node, clones, installs, registers auto-start, opens the board.*
 
 ## Features
 
@@ -24,12 +32,25 @@
 
 ## Install
 
+**One-liner (recommended):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/skycream/pflow/main/install.sh | bash
+```
+
+This checks (and auto-installs) iTerm2 and Node 20+, clones to `~/pflow`, installs dependencies, registers a LaunchAgent (starts on boot, auto-restarts if it dies), and opens the dashboard.
+
+<details>
+<summary>Manual install</summary>
+
 ```bash
 git clone https://github.com/skycream/pflow
 cd pflow
 npm install
 npm run dev   # http://localhost:3000
 ```
+
+</details>
 
 ### 1) Install the plugin (event collection)
 

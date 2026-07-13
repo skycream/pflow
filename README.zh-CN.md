@@ -1,10 +1,18 @@
-# pflow — Claude Code 多会话指挥中心
+# pflow — 别再当 AI 保姆，指挥你的舰队。
 
 [English](README.md) | [한국어](README.ko.md) | [日本語](README.ja.md) | **中文**
 
-> 同时运行 8–10+ 个 Claude Code 会话，在一个本地 Web 仪表盘中统一指挥：实时查看每个会话刚做了什么、是否在等你回复，一键作答、注入提示词、运行带审批门的工作流、复活已死会话 — 全程无需离开指挥板。
+一个 Claude Code 会话让你更快。开十个呢？**标签页地狱**就开始了 — 在终端标签间来回切换，事后才发现某个会话卡在一个问题上等了你 20 分钟，根本记不清每个会话刚做了什么。
+
+**pflow 把这份混乱变成指挥塔。** 所有会话实时呈现在一块指挥板上 — 看到每个会话刚做了什么，一键回答它的提问，随手注入提示词，运行带审批门的工作流，重启后一键复活全部死亡会话。从此不必再碰终端标签。
 
 ![pflow dashboard](docs/screenshot.png)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/skycream/pflow/main/install.sh | bash
+```
+
+*一条命令：检查并自动安装 iTerm2 和 Node → 克隆 → 装依赖 → 注册开机自启 → 打开指挥板。*
 
 ## 功能亮点
 
