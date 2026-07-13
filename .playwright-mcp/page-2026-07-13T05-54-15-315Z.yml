@@ -1,0 +1,42 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - heading "project_flow" [level=1] [ref=e5]
+    - generic [ref=e6]:
+      - generic [ref=e7]:
+        - text: 작업중
+        - generic [ref=e9]: "0"
+      - generic [ref=e10]:
+        - text: 압축중
+        - generic [ref=e12]: "0"
+      - generic [ref=e13]:
+        - text: 대기
+        - generic [ref=e15]: "0"
+      - generic [ref=e16]:
+        - text: 유휴
+        - generic [ref=e18]: "0"
+      - generic [ref=e19]:
+        - text: 에러
+        - generic [ref=e21]: "0"
+      - button "🔌 세션 복구" [ref=e22]
+      - button "🧹 오래된 세션 정리" [ref=e23]
+      - button "🔔 알림 OFF" [ref=e24]
+      - button "🔄 자동재시도 ON" [ref=e25]
+      - button "🔧 멈춤교정 ON" [ref=e26]
+      - button "☾ 다크" [ref=e27]
+  - generic [ref=e28]:
+    - button "프로젝트 0" [ref=e29]
+    - button "주기작업 0" [ref=e30]:
+      - text: 주기작업
+      - generic [ref=e31]: "0"
+    - button "📼 음성노트" [ref=e32]
+    - generic [ref=e33]:
+      - generic [ref=e34]: "레이아웃 데모:"
+      - link "칸반" [ref=e35] [cursor=pointer]:
+        - /url: /demo/kanban
+      - link "전광판" [ref=e36] [cursor=pointer]:
+        - /url: /demo/wall
+      - link "피드" [ref=e37] [cursor=pointer]:
+        - /url: /demo/feed
+  - generic [ref=e38]:
+    - paragraph [ref=e39]: 아직 프로젝트 세션이 없어요.
+    - paragraph [ref=e40]: 플러그인을 설치하고 프로젝트 폴더에서 claude를 켜면 나타납니다.
