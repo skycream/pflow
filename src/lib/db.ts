@@ -4,6 +4,7 @@
 import Database from "better-sqlite3";
 import { EventEmitter } from "node:events";
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { deriveStatus, STATUS_WEIGHT, type SessionStatus } from "./status";
 
@@ -198,20 +199,32 @@ const SESSION_SELECT = `SELECT s.*, p.alias FROM sessions s LEFT JOIN projects p
 
 // cwd → 프로젝트 루트 경로. cwd에서 위로 올라가며 .git을 찾고 그 폴더를 루트로 본다.
 // (서브디렉토리에서 세션을 돌려도 같은 루트로 묶임) 결과는 cwd 기준 캐시.
+// .git이 없으면 cwd 자체가 아니라 "홈 바로 아래 첫 폴더"(~/videoeditor)를 루트로 삼는다.
+// (예: ~/videoeditor에 .git 없어도 하위 assets/fonts에서 켠 세션이 'fonts'가 아니라
+//  'videoeditor'로 묶이게. cwd를 루트로 쓰면 하위 폴더명이 프로젝트명이 되는 버그.)
 const projectRootCache = new Map<string, string>();
 function resolveProjectRoot(cwd: string): string {
   if (!cwd) return "";
   const cached = projectRootCache.get(cwd);
   if (cached) return cached;
 
+  const home = os.homedir();
+  let result = cwd; // 최종 폴백
   let dir = cwd;
-  let result = cwd; // 폴백: cwd 자체
+  let found = false;
   while (dir && dir !== path.dirname(dir)) {
     if (existsSync(path.join(dir, ".git"))) {
       result = dir;
+      found = true;
       break;
     }
     dir = path.dirname(dir);
+  }
+  // .git을 못 찾았고 cwd가 홈 아래면, 홈 바로 다음 폴더를 루트로.
+  if (!found && cwd.startsWith(home + path.sep)) {
+    const rel = cwd.slice(home.length + 1); // "videoeditor/shorts-kit/assets/fonts"
+    const first = rel.split(path.sep)[0]; // "videoeditor"
+    if (first) result = path.join(home, first);
   }
   projectRootCache.set(cwd, result);
   return result;
