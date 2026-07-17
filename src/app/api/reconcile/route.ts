@@ -25,8 +25,16 @@ export async function POST() {
       continue;
     }
 
-    // idle/error: 실제 프로세스로 생존 판정
-    const alive = ids.has(s.session_id.toLowerCase()) || cwds.has(normPath(s.cwd));
+    // idle/error: 실제 프로세스로 생존 판정.
+    // cwd 매칭은 정확일치가 아니라 "프로젝트 루트 공유"로 판정한다 — 세션이 claude 안에서
+    // cd로 폴더를 옮기면(예: 프로젝트/site 하위로) DB cwd와 실시간 lsof cwd가 어긋나
+    // 살아있는데 죽음으로 오판하기 때문. 같은 project_root 아래면 살아있는 것으로 본다.
+    const sRoot = normPath(s.project_root || s.cwd);
+    const cwdAlive = [...cwds].some((c) => {
+      const nc = normPath(c);
+      return nc === sRoot || nc.startsWith(sRoot + "/"); // 루트 자체이거나 그 하위
+    });
+    const alive = ids.has(s.session_id.toLowerCase()) || cwdAlive;
     // 조회가 불안정(도구 실패)하면 "죽음" 판정은 보류 — 살아있는데 죽음으로 찍는 오탐 방지.
     // 단 "살아있음"으로 dead 해제하는 건 안전하니 허용.
     if (!alive && !reliable) continue;
