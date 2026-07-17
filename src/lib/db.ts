@@ -511,6 +511,21 @@ export function recordEvent(payload: Record<string, unknown>): SessionRow | null
       ? payload.transcript_path
       : null;
   if (ttyVal || itermId || tPath) {
+    // GUID/tty 충돌 방지: 이 세션이 새 iterm_id·tty를 가지면, 그 핸들을 쓰던 다른 세션에서
+    // 먼저 떼어낸다. iTerm이 탭을 닫고 GUID/tty를 재사용하면 옛 세션에 남아 "엉뚱한 탭으로 명령이
+    // 가는" 사고가 나므로, 핸들은 항상 최신 세션 하나만 소유하게 한다.
+    if (itermId) {
+      db.prepare(`UPDATE sessions SET iterm_id = NULL WHERE iterm_id = ? AND session_id != ?`).run(
+        itermId,
+        sessionId,
+      );
+    }
+    if (ttyVal) {
+      db.prepare(`UPDATE sessions SET tty = NULL WHERE tty = ? AND session_id != ?`).run(
+        ttyVal,
+        sessionId,
+      );
+    }
     db.prepare(
       `UPDATE sessions SET tty = COALESCE(?, tty), iterm_id = COALESCE(?, iterm_id), transcript_path = COALESCE(?, transcript_path) WHERE session_id = ?`,
     ).run(ttyVal, itermId, tPath, sessionId);

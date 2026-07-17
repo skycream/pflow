@@ -25,8 +25,38 @@ export async function POST(req: Request) {
   if (!s) return Response.json({ ok: false, error: "세션 없음" }, { status: 404 });
   if (!s.cwd) return Response.json({ ok: false, error: "cwd 없음 — 되살릴 수 없음" }, { status: 409 });
 
-  // 기동 후 자동 전송할 메시지가 있으면 큐에 저장 (hook의 SessionStart 때 주입)
   const text = typeof body.text === "string" ? body.text.trim() : "";
+
+  // 방어: DB엔 죽음/종료로 있어도 실제 탭이 살아있으면(SessionEnd 오발동·상태 꼬임) 새 탭을
+  // 열지 말고 그 탭으로 바로 보낸다. "엉뚱한 새 탭에 명령이 가는" 사고를 막는 핵심.
+  const guid = esc((s.iterm_id || "").split(":").pop() || "");
+  if (guid) {
+    const submit = text
+      ? `\n          tell se to write text "${esc(text)}" newline no\n          delay 0.4\n          tell se to write text "" newline yes`
+      : "";
+    const liveScript = `tell application "iTerm2"
+  repeat with w in windows
+    repeat with t in tabs of w
+      repeat with se in sessions of t
+        if id of se is "${guid}" then
+          select w
+          tell t to select
+          activate${submit}
+          return "live"
+        end if
+      end repeat
+    end repeat
+  end repeat
+  return "dead"
+end tell`;
+    const lr = runCmd("osascript", ["-e", liveScript], { timeout: 6000 });
+    if ((lr.stdout?.toString() || "").trim() === "live") {
+      reviveSession(id); // 상태 정상화(dead=0), 실제 살아있었으니
+      return Response.json({ ok: true, alreadyLive: true });
+    }
+  }
+
+  // 기동 후 자동 전송할 메시지가 있으면 큐에 저장 (hook의 SessionStart 때 주입)
   if (text) revivePending.set(id, text);
   else revivePending.delete(id);
 
