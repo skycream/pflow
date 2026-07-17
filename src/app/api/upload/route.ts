@@ -5,11 +5,20 @@ import path from "node:path";
 
 export const runtime = "nodejs";
 
+// 업로드 최대 크기 (100MB). arrayBuffer로 통째 메모리 로드하므로 상한이 없으면 서버 OOM.
+const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
 export async function POST(req: Request) {
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) {
     return Response.json({ ok: false, error: "파일 없음" }, { status: 400 });
+  }
+  if (file.size > MAX_UPLOAD_BYTES) {
+    return Response.json(
+      { ok: false, error: `파일이 너무 큽니다 (최대 ${MAX_UPLOAD_BYTES / 1024 / 1024}MB)` },
+      { status: 413 },
+    );
   }
 
   const dir = path.join(process.cwd(), "data", "uploads");

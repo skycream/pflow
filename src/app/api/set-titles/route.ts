@@ -1,7 +1,6 @@
 // iTerm 탭 제목을 각 세션의 프로젝트명(별칭 우선)으로 고정한다.
 // claude가 제목을 바꿔도 대시보드가 주기적으로 되돌려, 창에서 어떤 프로젝트인지 항상 보이게.
-import { spawnSync } from "node:child_process";
-import { OSA_ENV } from "@/lib/osaEnv";
+import { runCmd } from "@/lib/osaEnv";
 import os from "node:os";
 import { getSessions } from "@/lib/db";
 
@@ -52,7 +51,7 @@ ${setBlocks}
 end tell
 return "ok"`;
 
-  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
+  const r = runCmd("osascript", ["-e", script]);
   return r.status === 0
     ? Response.json({ ok: true, count: targets.length })
     : Response.json(

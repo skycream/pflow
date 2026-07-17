@@ -27,15 +27,14 @@ export function lastActionLine(s: SessionRow): string {
 export function pendingSentMessages(s: SessionRow) {
   const steps = s.recentSteps ?? [];
   const prompt = s.last_prompt_at;
-  const answered = (createdAt: number) => {
-    if (steps.some((st) => st.created_at > createdAt)) return true; // 새 진행단계 = 확실히 응답
-    // 내 메시지가 접수됐나? (보낸 시각 이후 UserPromptSubmit)
-    const accepted = prompt != null && prompt >= createdAt;
-    if (!accepted) return false; // 아직 접수 안 됨 → 무조건 대기중 (이전 턴 Stop에 안 속음)
-    // 접수된 뒤 턴 종료(Stop) 또는 idle 정지 = 응답 완료
-    return (s.last_stop_at != null && s.last_stop_at >= prompt) || s.status === "idle";
+  const answered = (m: { created_at: number; answered_at: number | null }) => {
+    if (m.answered_at != null) return true; // 서버에서 응답 완료로 래칭됨 (부활 안 함)
+    if (steps.some((st) => st.created_at > m.created_at)) return true; // 새 진행단계 = 확실히 응답
+    // 아직 래칭 전이지만 접수(prompt) 후 idle이면 응답 완료로 간주 (래칭은 다음 Stop 이벤트에)
+    const accepted = prompt != null && prompt >= m.created_at;
+    return accepted && s.status === "idle";
   };
-  return (s.recentSent ?? []).filter((m) => !answered(m.created_at));
+  return (s.recentSent ?? []).filter((m) => !answered(m));
 }
 
 // 내 주의가 필요한 세션인지 (질문 대기 / 응답 안 준 보낸요청 / waiting)

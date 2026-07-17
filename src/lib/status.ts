@@ -39,8 +39,11 @@ export function deriveStatus(
   switch (eventName) {
     case "SessionStart":
       return "idle"; // 시작/재개 직후, 첫 프롬프트 대기
-    case "UserPromptSubmit":
     case "PreToolUse":
+      // AskUserQuestion은 사람의 답을 기다리며 블록됨 → waiting (상태점이 '작업중'으로 오인 안 되게)
+      if (String(payload.tool_name ?? "") === "AskUserQuestion") return "waiting";
+      return "working";
+    case "UserPromptSubmit":
     case "PostToolUse":
     case "PostToolUseFailure":
     case "PostToolBatch":

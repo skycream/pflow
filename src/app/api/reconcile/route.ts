@@ -9,7 +9,7 @@ import { runningClaude, normPath } from "@/lib/procCheck";
 export const runtime = "nodejs";
 
 export async function POST() {
-  const { cwds, ids } = runningClaude();
+  const { cwds, ids, reliable } = runningClaude();
   const home = os.homedir();
   let changed = 0;
 
@@ -26,8 +26,10 @@ export async function POST() {
     }
 
     // idle/error: 실제 프로세스로 생존 판정
-    const alive =
-      ids.has(s.session_id.toLowerCase()) || cwds.has(normPath(s.cwd));
+    const alive = ids.has(s.session_id.toLowerCase()) || cwds.has(normPath(s.cwd));
+    // 조회가 불안정(도구 실패)하면 "죽음" 판정은 보류 — 살아있는데 죽음으로 찍는 오탐 방지.
+    // 단 "살아있음"으로 dead 해제하는 건 안전하니 허용.
+    if (!alive && !reliable) continue;
     const want = alive ? 0 : 1;
     if ((s.dead ? 1 : 0) !== want) {
       if (want) markDead(s.session_id);
@@ -36,5 +38,5 @@ export async function POST() {
     }
   }
 
-  return Response.json({ ok: true, changed });
+  return Response.json({ ok: true, changed, reliable });
 }

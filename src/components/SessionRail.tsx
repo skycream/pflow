@@ -6,23 +6,10 @@ import { useState } from "react";
 import type { SessionRow } from "@/lib/db";
 import type { Project } from "@/components/ProjectCard";
 import { StatusDot } from "@/components/StatusDot";
+// 정본은 sessionView.ts — 중복 정의하면 버그 수정이 한쪽만 반영되는 사고가 난다(실제 발생).
+import { needsAttention, isDead, lastActionLine } from "@/lib/sessionView";
 
 export type RailGroup = { id: string; name: string; projects: Project[] };
-
-function isDead(s: SessionRow): boolean {
-  return !!s.dead || s.status === "ended";
-}
-function needsAttention(s: SessionRow): boolean {
-  if (s.pending_question) return true;
-  if (s.status === "waiting") return true;
-  const steps = s.recentSteps ?? [];
-  return (s.recentSent ?? []).some(
-    (m) => !steps.some((st) => st.created_at > m.created_at) && !(s.last_stop_at && s.last_stop_at > m.created_at),
-  );
-}
-function lastActionLine(s: SessionRow): string {
-  return s.just_did || s.last_activity || s.session_title || s.last_event || "—";
-}
 
 function RailRow({
   session,

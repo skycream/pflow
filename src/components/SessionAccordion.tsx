@@ -152,11 +152,16 @@ export function SessionAccordion({
     }
     setFlash(true);
     setSent(null); // 세션이 응답하면 토스트 제거
-    setSelectedOpts(new Set());
-    setQSel({});
     const t = setTimeout(() => setFlash(false), 1000);
     return () => clearTimeout(t);
   }, [session.last_event_at]);
+
+  // 사용자 선택 초기화는 "실제로 새 답변/질문이 왔을 때"만.
+  // (작업 중 progress 이벤트마다 지우면, 옵션 고르거나 다중질문 답하는 중에 사라진다.)
+  useEffect(() => {
+    setSelectedOpts(new Set());
+    setQSel({});
+  }, [session.next_options, session.pending_question]);
 
   // 다음 작업 옵션 + 명령 전송 (tmux 양방향 제어)
   const [sendText, setSendText] = useState("");

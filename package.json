@@ -5,9 +5,9 @@
   "description": "Local mission-control dashboard for orchestrating multiple Claude Code sessions",
   "license": "MIT",
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -H 127.0.0.1",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -H 127.0.0.1",
     "lint": "eslint"
   },
   "dependencies": {

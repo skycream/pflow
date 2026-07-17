@@ -1,8 +1,7 @@
 // 세션 재접속: 같은 iTerm 탭에서 claude 프로세스를 종료(kill)한 뒤 claude --resume으로 다시 들어간다.
 // /exit는 종료 타이밍이 대화 크기에 따라 들쭉날쭉해 명령이 입력창에 새기 쉬우므로, 프로세스 kill로 확실히 종료한다.
 // 스킬/설정을 새로 설치했는데 반영이 안 될 때, 재시작으로 다시 로드시키는 용도.
-import { spawnSync } from "node:child_process";
-import { OSA_ENV } from "@/lib/osaEnv";
+import { runCmd } from "@/lib/osaEnv";
 import { getSession } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -13,7 +12,7 @@ function esc(s: string): string {
 }
 
 function osa(script: string): string {
-  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
+  const r = runCmd("osascript", ["-e", script]);
   return (r.stdout?.toString() || "").trim();
 }
 
@@ -50,11 +49,9 @@ end tell`);
   if (!tty.startsWith("/dev/")) {
     // 탭이 이미 닫힘 → 되살리기처럼 폴백: 탭 5개 미만 창에 새 탭(없으면 새 창)으로 claude --resume
     const resumeCmd = esc(`cd "${esc(s.cwd || process.env.HOME || "~")}" && claude --resume ${id}`);
-    const fb = spawnSync(
-      "osascript",
-      [
-        "-e",
-        `tell application "iTerm2"
+    const fb = runCmd("osascript", [
+      "-e",
+      `tell application "iTerm2"
   set target to missing value
   repeat with w in windows
     if (count of tabs of w) < 5 then
@@ -71,9 +68,7 @@ end tell`);
   activate
 end tell
 return "ok"`,
-      ],
-      { env: OSA_ENV },
-    );
+    ]);
     return (fb.stdout?.toString() || "").trim() === "ok"
       ? Response.json({ ok: true, reopened: true })
       : Response.json({ ok: false, error: "탭이 닫혀 있어 새로 열려 했지만 실패" }, { status: 500 });
@@ -81,7 +76,7 @@ return "ok"`,
 
   // 2) 그 tty에서 실행 중인 claude 프로세스를 종료 (자식 MCP는 orphan으로 곧 정리됨)
   const dev = tty.replace("/dev/", "");
-  const ps = spawnSync("ps", ["-t", dev, "-o", "pid=,comm="], { env: OSA_ENV });
+  const ps = runCmd("ps", ["-t", dev, "-o", "pid=,comm="]);
   const pids = (ps.stdout?.toString() || "")
     .split("\n")
     .map((l) => l.trim().match(/^(\d+)\s+(.*)$/))
@@ -90,12 +85,12 @@ return "ok"`,
   // SIGKILL(-9): SIGTERM은 "이 세션 어땠나요/Resume with…" 종료 피드백 화면을 띄우고 대기하므로
   // 그 화면과 명령이 충돌한다. -9로 즉시 죽여 곧바로 쉘 프롬프트로 떨어지게 한다.
   if (pids.length > 0) {
-    spawnSync("kill", ["-9", ...pids], { env: OSA_ENV });
+    runCmd("kill", ["-9", ...pids]);
   }
 
   // 3) 쉘 복귀를 잠깐 기다렸다가, 같은 탭에서 claude --resume 실행 (텍스트 → 딜레이 → Enter)
   const resume = esc(`claude --resume ${id}`);
-  const r = spawnSync(
+  const r = runCmd(
     "osascript",
     [
       "-e",
@@ -116,7 +111,7 @@ return "ok"`,
   return "notfound"
 end tell`,
     ],
-    { env: OSA_ENV },
+    { timeout: 6000 }, // 내부 delay 1.9초 + 여유
   );
   const out = (r.stdout?.toString() || "").trim();
   return out === "ok"

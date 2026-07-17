@@ -1,7 +1,6 @@
 // 죽은(💀) 세션 하나를 되살린다: 새 iTerm 탭에서 해당 폴더로 이동해 claude --resume 실행.
 // dead=0으로 되돌리고, 세션이 다시 이벤트를 보내면 상태도 자동 정상화된다.
-import { spawnSync } from "node:child_process";
-import { OSA_ENV } from "@/lib/osaEnv";
+import { runCmd } from "@/lib/osaEnv";
 import { getSession, reviveSession } from "@/lib/db";
 import { revivePending } from "@/lib/revivePending";
 
@@ -49,7 +48,7 @@ export async function POST(req: Request) {
   tell current session of target to write text "${esc(cmd)}"
 end tell
 return "ok"`;
-  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
+  const r = runCmd("osascript", ["-e", script]);
 
   reviveSession(id); // 💀 해제 (되살아나 이벤트를 보내면 상태도 갱신됨)
 

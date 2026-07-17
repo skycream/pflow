@@ -51,21 +51,29 @@ export default function Home() {
   const [notif, setNotif] = useState(false); // OS 데스크톱 알림 켜짐
   const prevNeedRef = useRef<Map<string, boolean>>(new Map()); // 세션별 직전 '주의 필요' 상태
 
-  // 초기 스냅샷
-  useEffect(() => {
+  // 전체 스냅샷 재요청 (초기 + SSE 재연결 시 재동기화용)
+  const resync = useCallback(() => {
     fetch("/api/sessions")
       .then((r) => r.json())
       .then((d) => {
-        setSessions(d.sessions ?? []);
-        setHome(d.home ?? "");
+        // SSE 델타가 놓친 것까지 반영: 서버 스냅샷을 진실로 삼아 통째 교체
+        if (Array.isArray(d.sessions)) setSessions(sortSessions(d.sessions));
+        if (d.home != null) setHome(d.home);
       })
       .catch(() => {});
   }, []);
 
+  // 초기 스냅샷
+  useEffect(() => {
+    resync();
+  }, [resync]);
+
   // 실시간 갱신 (SSE) — 이벤트를 120ms 단위로 배칭해 리렌더 폭주를 막는다.
   // 여러 세션이 동시에 도구 이벤트를 쏟아도 프레임당 한 번만 setSessions.
   useEffect(() => {
-    const es = new EventSource("/api/stream");
+    let es: EventSource | null = null;
+    let firstOpen = true;
+    let closed = false;
     const pending = new Map<string, SessionRow>();
     const deleted = new Set<string>();
     let timer: ReturnType<typeof setTimeout> | null = null;
@@ -83,22 +91,47 @@ export default function Home() {
         return sortSessions([...map.values()]);
       });
     };
-    es.onmessage = (e) => {
-      const data = JSON.parse(e.data);
-      if (data.__deleted) {
-        deleted.add(data.__deleted);
-        pending.delete(data.__deleted);
-      } else {
-        pending.set(data.session_id, data);
-        deleted.delete(data.session_id);
-      }
-      if (timer == null) timer = setTimeout(flush, 120);
+    const connect = () => {
+      es = new EventSource("/api/stream");
+      es.onopen = () => {
+        // 재연결(두 번째 이후 open)이면, 끊긴 동안 놓친 상태를 스냅샷으로 재동기화.
+        if (!firstOpen) resync();
+        firstOpen = false;
+      };
+      es.onmessage = (e) => {
+        let data: (SessionRow & { __deleted?: string }) | null = null;
+        try {
+          data = JSON.parse(e.data);
+        } catch {
+          return; // 깨진 프레임 무시
+        }
+        if (!data) return;
+        if (data.__deleted) {
+          deleted.add(data.__deleted);
+          pending.delete(data.__deleted);
+        } else {
+          pending.set(data.session_id, data);
+          deleted.delete(data.session_id);
+        }
+        if (timer == null) timer = setTimeout(flush, 120);
+      };
+      es.onerror = () => {
+        // dev 모드 등에서 스트림이 비-SSE 응답이면 EventSource가 영구 종료될 수 있음.
+        // 명시적으로 닫고 잠시 후 재연결해 "살아있는데 멈춘" 상태를 방지.
+        if (closed) return;
+        es?.close();
+        setTimeout(() => {
+          if (!closed) connect();
+        }, 3000);
+      };
     };
+    connect();
     return () => {
-      es.close();
+      closed = true;
+      es?.close();
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [resync]);
 
   // 상대시간 표시 갱신용 틱
   useEffect(() => {
@@ -312,7 +345,10 @@ export default function Home() {
   const latestAt = useCallback((s: SessionRow) => {
     const steps = s.recentSteps ?? [];
     const lastStep = steps.length ? steps[steps.length - 1].created_at : 0;
-    return Math.max(s.last_stop_at ?? 0, lastStep);
+    // error/waiting 등 "내 개입 필요" 전이도 미열람으로 잡히게 last_event_at 포함
+    // (StopFailure는 last_stop_at을 안 올려서 error 전이가 미열람에서 누락됐음)
+    const attn = s.status === "error" || s.status === "waiting" ? s.last_event_at : 0;
+    return Math.max(s.last_stop_at ?? 0, lastStep, attn);
   }, []);
   // 처음 보는 세션은 현재 응답 시각을 기준선으로 저장(기존 응답은 읽음 처리) → 이후 새 응답만 미열람
   useEffect(() => {

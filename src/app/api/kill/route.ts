@@ -1,7 +1,6 @@
 // 세션 죽이기: iTerm 탭(세션)을 닫아 claude + 자식 MCP 프로세스를 종료해 메모리를 회수한다.
 // DB 레코드는 지우지 않고 dead=1(💀)로 표시 — 목록에 남겨두고 나중에 되살리거나 삭제.
-import { spawnSync } from "node:child_process";
-import { OSA_ENV } from "@/lib/osaEnv";
+import { runCmd } from "@/lib/osaEnv";
 import { getSession, markDead } from "@/lib/db";
 
 export const runtime = "nodejs";
@@ -49,7 +48,7 @@ export async function POST(req: Request) {
   end repeat
 end tell
 return "ok"`;
-    spawnSync("osascript", ["-e", script], { env: OSA_ENV });
+    runCmd("osascript", ["-e", script]);
   }
 
   // 프로세스 종료 성공 여부와 무관하게 죽음(💀) 표시 — 사용자가 죽이기로 결정한 것

@@ -1,8 +1,7 @@
 // Claude 세션이 아니고, 아무 작업도 안 도는(쉘 프롬프트만 있는) iTerm 탭을 닫는다.
 // 안전장치: claude가 돌거나, 서버/수집 등 foreground 프로세스가 있는 탭은 절대 닫지 않는다.
 // GET  = 닫을 후보 미리보기(dry-run)  |  POST = 실제로 닫기
-import { spawnSync } from "node:child_process";
-import { OSA_ENV } from "@/lib/osaEnv";
+import { runCmd } from "@/lib/osaEnv";
 
 export const runtime = "nodejs";
 
@@ -14,11 +13,9 @@ type Tab = { guid: string; tty: string };
 
 // 모든 iTerm 세션의 GUID+tty 수집
 function allSessions(): Tab[] {
-  const r = spawnSync(
-    "osascript",
-    [
-      "-e",
-      `tell application "iTerm2"
+  const r = runCmd("osascript", [
+    "-e",
+    `tell application "iTerm2"
   set out to ""
   repeat with w in windows
     repeat with t in tabs of w
@@ -29,9 +26,7 @@ function allSessions(): Tab[] {
   end repeat
   return out
 end tell`,
-    ],
-    { env: OSA_ENV },
-  );
+  ]);
   return (r.stdout?.toString() || "")
     .split("\n")
     .map((l) => l.trim())
@@ -46,7 +41,7 @@ end tell`,
 // 그 tty에서 도는 프로세스 comm 목록
 function procs(tty: string): string[] {
   const dev = tty.replace("/dev/", "");
-  const r = spawnSync("ps", ["-t", dev, "-o", "comm="], { env: OSA_ENV });
+  const r = runCmd("ps", ["-t", dev, "-o", "comm="]);
   return (r.stdout?.toString() || "")
     .split("\n")
     .map((x) => x.trim())
@@ -95,7 +90,7 @@ export async function POST() {
   end repeat
 end tell
 return "ok"`;
-  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
+  const r = runCmd("osascript", ["-e", script]);
   return r.status === 0
     ? Response.json({ ok: true, count: c.length })
     : Response.json({ ok: false, error: r.stderr?.toString().trim() }, { status: 500 });

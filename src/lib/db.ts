@@ -182,6 +182,13 @@ function getDb(): Database.Database {
     db.exec(`ALTER TABLE steps ADD COLUMN full_answer TEXT`); // 그 턴의 전체 답변(원문)
   }
 
+  // sent_messages: 응답 완료 시각(래칭). 한 번 응답되면 이후 새 메시지로 last_prompt_at이
+  // 바뀌어도 다시 "대기중"으로 부활하지 않게 영구 표시.
+  const sentCols = db.prepare(`PRAGMA table_info(sent_messages)`).all() as { name: string }[];
+  if (!sentCols.some((c) => c.name === "answered_at")) {
+    db.exec(`ALTER TABLE sent_messages ADD COLUMN answered_at INTEGER`);
+  }
+
   g.__flowDb = db;
   return db;
 }
@@ -378,6 +385,31 @@ function extractError(transcriptPath: string): string | null {
   }
 }
 
+// events 테이블 정리: 세션당 최근 200개만 남기고, 14일보다 오래된 것도 삭제.
+// getEvents는 최근 50개만 쓰므로 데이터 손실 없이 무한 증가를 막는다.
+const EVENT_KEEP_PER_SESSION = 200;
+const EVENT_MAX_AGE_MS = 14 * 24 * 60 * 60 * 1000;
+function maybePruneEvents(db: Database.Database, now: number): void {
+  // 매번 돌면 비싸다 — 100건에 1번꼴로만(카운터 기반이라 결정적, Math.random 불필요).
+  pruneCounter = (pruneCounter + 1) % 100;
+  if (pruneCounter !== 0) return;
+  try {
+    db.prepare(`DELETE FROM events WHERE created_at < ?`).run(now - EVENT_MAX_AGE_MS);
+    // 세션별 최근 N개 초과분 삭제
+    db.prepare(
+      `DELETE FROM events WHERE id IN (
+         SELECT id FROM (
+           SELECT id, ROW_NUMBER() OVER (PARTITION BY session_id ORDER BY created_at DESC) AS rn
+           FROM events
+         ) WHERE rn > ?
+       )`,
+    ).run(EVENT_KEEP_PER_SESSION);
+  } catch {
+    /* 정리는 베스트에포트 — 실패해도 기록엔 지장 없음 */
+  }
+}
+let pruneCounter = 0;
+
 // hook이 보낸 원본 payload를 받아 events에 기록하고 sessions를 갱신한다 (자동층).
 // 식별 불가(session_id 없음) 이벤트는 무시한다.
 export function recordEvent(payload: Record<string, unknown>): SessionRow | null {
@@ -400,6 +432,11 @@ export function recordEvent(payload: Record<string, unknown>): SessionRow | null
     `INSERT INTO events (session_id, event_name, payload_json, created_at)
      VALUES (?, ?, ?, ?)`,
   ).run(sessionId, eventName, JSON.stringify(payload), now);
+
+  // events GC: payload_json이 통짜라 무한 증가하면 DB가 수백 MB로 부푼다.
+  // getEvents는 세션당 최근 50개만 조회하므로 오래된 건 안전하게 지운다.
+  // 매 이벤트마다 돌면 비싸니 약 1% 확률로만 실행(better-sqlite3 동기라 부담은 순간).
+  maybePruneEvents(db, now);
 
   const existing = db
     .prepare(`SELECT * FROM sessions WHERE session_id = ?`)
@@ -487,8 +524,24 @@ export function recordEvent(payload: Record<string, unknown>): SessionRow | null
   if (eventName === "UserPromptSubmit") {
     db.prepare(`UPDATE sessions SET last_prompt_at = ? WHERE session_id = ?`).run(now, sessionId);
   }
-  // 이벤트가 도착했다 = 프로세스가 살아있음 → 죽음(💀) 표시 자동 해제 (되살아난 세션)
-  if (existing?.dead) {
+  // 응답 완료 래칭: 턴 종료(Stop)가 오면, 접수(last_prompt_at)된 미응답 보낸메시지를
+  // "응답됨"으로 영구 표시. 한 번 표시되면 이후 새 메시지로 last_prompt_at이 바뀌어도 부활 안 함.
+  if (eventName === "Stop") {
+    const p = db.prepare(`SELECT last_prompt_at FROM sessions WHERE session_id = ?`).get(sessionId) as
+      | { last_prompt_at: number | null }
+      | undefined;
+    const prompt = p?.last_prompt_at;
+    if (prompt != null) {
+      db.prepare(
+        `UPDATE sent_messages SET answered_at = ?
+         WHERE session_id = ? AND answered_at IS NULL AND created_at <= ?`,
+      ).run(now, sessionId, prompt);
+    }
+  }
+  // 죽음(💀) 표시 자동 해제는 SessionStart(진짜 재시작)에서만 한다.
+  // 모든 이벤트에서 풀면, 내가 kill한 직후 지연 도착한 trailing 이벤트(Stop 등)가
+  // 죽은 세션을 되살려 카드가 깜빡이는 버그가 생긴다.
+  if (existing?.dead && eventName === "SessionStart") {
     db.prepare(`UPDATE sessions SET dead = 0 WHERE session_id = ?`).run(sessionId);
   }
 
@@ -653,10 +706,11 @@ function captureTranscript(sessionId: string, transcriptPath: string, attempt = 
       ).run(sessionId, flow.request, flow.result, flow.fullRequest, flow.fullAnswer, Date.now());
       changed = true;
     } else if (flow.fullAnswer && last.full_answer !== flow.fullAnswer) {
-      // 요약은 같지만 답변 내용이 바뀜(같은 요약 재사용) → 마지막 단계 내용·시각 갱신
+      // 요약은 같지만 답변 내용이 바뀜(스트리밍/보강) → 마지막 단계 내용만 갱신.
+      // created_at은 유지한다 — 올리면 오래된 step이 트리 맨 위로 튀어 시간순이 깨진다.
       db.prepare(
-        `UPDATE steps SET full_request = ?, full_answer = ?, request = ?, created_at = ? WHERE id = ?`,
-      ).run(flow.fullRequest, flow.fullAnswer, flow.request, Date.now(), last.id);
+        `UPDATE steps SET full_request = ?, full_answer = ?, request = ? WHERE id = ?`,
+      ).run(flow.fullRequest, flow.fullAnswer, flow.request, last.id);
       changed = true;
     }
   }
@@ -833,6 +887,7 @@ export interface SentRow {
   session_id: string;
   text: string;
   created_at: number;
+  answered_at: number | null; // 응답 완료로 래칭된 시각 (null이면 대기중)
 }
 
 // 보낸 요청 기록 (영구). 저장 후 SSE로 즉시 카드 갱신.

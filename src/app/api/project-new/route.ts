@@ -1,7 +1,6 @@
 // 새 프로젝트 시작: ~/<이름> 폴더 생성 → git init → 새 iTerm 탭에서 claude 실행.
 // SessionStart 훅이 잡히면 대시보드에 프로젝트/세션이 자동으로 나타난다.
-import { spawnSync } from "node:child_process";
-import { OSA_ENV } from "@/lib/osaEnv";
+import { runCmd } from "@/lib/osaEnv";
 import { existsSync, mkdirSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -36,7 +35,7 @@ export async function POST(req: Request) {
 
   // 폴더 생성 + git init (프로젝트 루트 인식용)
   mkdirSync(dir, { recursive: true });
-  spawnSync("git", ["init", "-q"], { cwd: dir, env: OSA_ENV });
+  runCmd("git", ["init", "-q"], { cwd: dir });
 
   // iTerm에서 진입 → claude 실행.
   // 탭 5개 미만인 기존 창이 있으면 거기에 새 탭, 전부 5개 이상(또는 창 없음)이면 새 창.
@@ -61,7 +60,7 @@ export async function POST(req: Request) {
   activate
 end tell
 return "ok"`;
-  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
+  const r = runCmd("osascript", ["-e", script]);
   return r.status === 0
     ? Response.json({ ok: true, dir })
     : Response.json(

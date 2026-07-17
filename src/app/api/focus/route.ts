@@ -1,5 +1,5 @@
 // 관제판을 Safari에서 앞으로 띄우기 (없으면 새 탭으로 연다). 로컬 전용 액션.
-import { spawnSync } from "node:child_process";
+import { runCmd } from "@/lib/osaEnv";
 
 export const runtime = "nodejs";
 
@@ -22,8 +22,6 @@ end tell
 tell application "System Events" to tell process "Safari" to set frontmost to true`;
 
 export async function POST() {
-  const r = spawnSync("osascript", ["-e", SCRIPT], {
-    env: { ...process.env, PATH: `/usr/bin:/bin:${process.env.PATH ?? ""}` },
-  });
+  const r = runCmd("osascript", ["-e", SCRIPT]);
   return Response.json({ ok: r.status === 0, error: r.stderr?.toString().trim() || undefined });
 }
