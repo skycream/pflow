@@ -769,8 +769,14 @@ export function SessionAccordion({
             </button>
           )}
           {/* 최신이 맨 위 + 볼드, 이전은 아래에 흐리게. 클릭 시 전체 질문/답변 펼침 */}
-          {[...shown].reverse().map((st, i) => {
+          {(() => {
+            const reversed = [...shown].reverse();
+            // "답변 본문이 있는 가장 최근 step"을 자동으로 펼쳐 보여준다.
+            // 마지막 턴이 [flow] 두 줄만이라 full_answer가 비면, 그 직전의 실제 긴 답변이 보이게.
+            const autoShowIdx = reversed.findIndex((st) => (st.full_answer?.trim()?.length ?? 0) > 0);
+            return reversed.map((st, i) => {
             const isLatest = i === 0;
+            const showAnswer = i === autoShowIdx; // 이 step의 답변을 항상 펼쳐 표시
             const isOpen = expandedSteps.has(st.id);
             const hasFull = !!(st.full_request || st.full_answer);
             return (
@@ -812,8 +818,8 @@ export function SessionAccordion({
                   </button>
                 </div>
 
-                {/* 최신 답변: 항상 전체 펼침(클립·클릭 없음). 질문은 선택 토글. */}
-                {isLatest && st.full_answer && (
+                {/* 답변 있는 최근 step: 항상 전체 펼침(클립·클릭 없음). 질문은 선택 토글. */}
+                {showAnswer && st.full_answer && (
                   <div
                     style={{ backgroundColor: "#0a0a0a", borderColor: "#3f3f46" }}
                     className="mt-1.5 rounded-md border px-3 py-2"
@@ -838,8 +844,8 @@ export function SessionAccordion({
                   </div>
                 )}
 
-                {/* 펼침: 질문 + 답변 (비최신 step만 — 최신은 위에서 항상 표시) */}
-                {isOpen && !isLatest && (
+                {/* 펼침: 질문 + 답변 (자동표시 step 외 — 그건 위에서 항상 표시) */}
+                {isOpen && !showAnswer && (
                   <div
                     style={{ backgroundColor: "#0a0a0a", borderColor: "#3f3f46" }}
                     className="mt-1.5 space-y-2 rounded-md border p-3"
@@ -871,7 +877,8 @@ export function SessionAccordion({
                 </p>
               </div>
             );
-          })}
+            });
+          })()}
         </div>
       ) : (
         <div className="border-t border-zinc-100 px-4 py-2 dark:border-zinc-800">
