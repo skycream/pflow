@@ -2,10 +2,19 @@
 import { realpathSync } from "node:fs";
 import { runCmd, spawnFailed } from "./osaEnv";
 
-// 경로 정규화: 끝 슬래시 제거 + 심링크 해소(/tmp→/private/tmp 등).
+// lsof는 다중 PID 조회 시 비ASCII(한글 등)를 \xNN 형태로 이스케이프해 반환한다
+// (단일 PID일 땐 raw). 이걸 디코드하지 않으면 한글 폴더 경로 매칭이 실패해
+// "살아있는데 죽음으로 오판"하는 버그가 난다. \xNN 바이트열을 UTF-8로 복원한다.
+function decodeLsof(s: string): string {
+  if (!s.includes("\\x")) return s;
+  const bytes = s.replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  return Buffer.from(bytes, "latin1").toString("utf8");
+}
+
+// 경로 정규화: lsof 이스케이프 디코드 + 끝 슬래시 제거 + 심링크 해소(/tmp→/private/tmp 등).
 // realpath가 실패하면(존재 안 함 등) 슬래시만 정리.
 export function normPath(p: string): string {
-  const trimmed = p.replace(/\/+$/, "");
+  const trimmed = decodeLsof(p).replace(/\/+$/, "");
   try {
     return realpathSync(trimmed);
   } catch {
