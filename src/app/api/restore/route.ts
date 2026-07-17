@@ -1,16 +1,13 @@
 // 세션 전체 복구: iTerm이 죽었을 때, 저장된 세션(cwd + Claude 세션 ID)으로
 // 각 폴더에서 iTerm 탭을 열고 `claude --resume <id>`를 실행해 대화를 되살린다.
 import { spawnSync } from "node:child_process";
+import { OSA_ENV } from "@/lib/osaEnv";
 import os from "node:os";
 import { getSessions } from "@/lib/db";
 import { runningClaude, normPath } from "@/lib/procCheck";
 
 export const runtime = "nodejs";
 
-const ENV = {
-  ...process.env,
-  PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}`,
-};
 
 function esc(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -50,7 +47,7 @@ export async function POST() {
   });
   script += `end tell\nreturn "ok"`;
 
-  const r = spawnSync("osascript", ["-e", script], { env: ENV });
+  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
   return r.status === 0
     ? Response.json({ ok: true, count: dead.length })
     : Response.json(

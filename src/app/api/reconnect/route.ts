@@ -2,21 +2,18 @@
 // /exit는 종료 타이밍이 대화 크기에 따라 들쭉날쭉해 명령이 입력창에 새기 쉬우므로, 프로세스 kill로 확실히 종료한다.
 // 스킬/설정을 새로 설치했는데 반영이 안 될 때, 재시작으로 다시 로드시키는 용도.
 import { spawnSync } from "node:child_process";
+import { OSA_ENV } from "@/lib/osaEnv";
 import { getSession } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-const ENV = {
-  ...process.env,
-  PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}`,
-};
 
 function esc(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
 }
 
 function osa(script: string): string {
-  const r = spawnSync("osascript", ["-e", script], { env: ENV });
+  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
   return (r.stdout?.toString() || "").trim();
 }
 
@@ -75,7 +72,7 @@ end tell`);
 end tell
 return "ok"`,
       ],
-      { env: ENV },
+      { env: OSA_ENV },
     );
     return (fb.stdout?.toString() || "").trim() === "ok"
       ? Response.json({ ok: true, reopened: true })
@@ -84,7 +81,7 @@ return "ok"`,
 
   // 2) 그 tty에서 실행 중인 claude 프로세스를 종료 (자식 MCP는 orphan으로 곧 정리됨)
   const dev = tty.replace("/dev/", "");
-  const ps = spawnSync("ps", ["-t", dev, "-o", "pid=,comm="], { env: ENV });
+  const ps = spawnSync("ps", ["-t", dev, "-o", "pid=,comm="], { env: OSA_ENV });
   const pids = (ps.stdout?.toString() || "")
     .split("\n")
     .map((l) => l.trim().match(/^(\d+)\s+(.*)$/))
@@ -93,7 +90,7 @@ return "ok"`,
   // SIGKILL(-9): SIGTERM은 "이 세션 어땠나요/Resume with…" 종료 피드백 화면을 띄우고 대기하므로
   // 그 화면과 명령이 충돌한다. -9로 즉시 죽여 곧바로 쉘 프롬프트로 떨어지게 한다.
   if (pids.length > 0) {
-    spawnSync("kill", ["-9", ...pids], { env: ENV });
+    spawnSync("kill", ["-9", ...pids], { env: OSA_ENV });
   }
 
   // 3) 쉘 복귀를 잠깐 기다렸다가, 같은 탭에서 claude --resume 실행 (텍스트 → 딜레이 → Enter)
@@ -119,7 +116,7 @@ return "ok"`,
   return "notfound"
 end tell`,
     ],
-    { env: ENV },
+    { env: OSA_ENV },
   );
   const out = (r.stdout?.toString() || "").trim();
   return out === "ok"

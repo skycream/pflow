@@ -107,8 +107,12 @@ export default function Home() {
   }, []);
 
   // 실제 생존 자동 판정: 20초마다 각 세션의 claude 실행 여부로 💀(dead)를 맞춘다.
+  // 동시에 iTerm 탭 제목을 프로젝트명으로 고정(claude가 바꿔도 되돌림).
   useEffect(() => {
-    const run = () => fetch("/api/reconcile", { method: "POST" }).catch(() => {});
+    const run = () => {
+      fetch("/api/reconcile", { method: "POST" }).catch(() => {});
+      fetch("/api/set-titles", { method: "POST" }).catch(() => {});
+    };
     run(); // 초기 1회
     const iv = setInterval(run, 20000);
     return () => clearInterval(iv);
@@ -640,6 +644,27 @@ export default function Home() {
               className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
             >
               🧹 오래된 세션 정리
+            </button>
+            <button
+              onClick={async () => {
+                const pre = await fetch("/api/close-idle-tabs").then((x) => x.json());
+                if (!pre.ok || pre.count === 0) {
+                  alert("닫을 빈 탭이 없어요. (claude 세션·작업 중인 탭은 제외돼요)");
+                  return;
+                }
+                if (
+                  !confirm(
+                    `Claude 세션이 아니고 아무것도 안 도는 빈 iTerm 탭 ${pre.count}개를 닫을까요?\n(claude·서버·수집 등이 도는 탭은 자동 제외)`,
+                  )
+                )
+                  return;
+                const r = await fetch("/api/close-idle-tabs", { method: "POST" }).then((x) => x.json());
+                alert(r.ok ? `✅ 빈 탭 ${r.count}개를 닫았어요` : `실패: ${r.error || ""}`);
+              }}
+              title="Claude 세션이 아니고 아무 작업도 안 도는 빈 iTerm 탭만 닫기 (서버·수집 탭은 제외)"
+              className="rounded-full bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:bg-zinc-700"
+            >
+              🗑 빈 탭 닫기
             </button>
             <button
               onClick={toggleNotif}

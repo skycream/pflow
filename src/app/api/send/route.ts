@@ -1,14 +1,11 @@
 // 대시보드 → 세션 양방향 제어.
 // iTerm2(iterm_id) 또는 Apple Terminal(tty)에 AppleScript로 프롬프트를 주입한다.
 import { spawnSync } from "node:child_process";
+import { OSA_ENV } from "@/lib/osaEnv";
 import { getSession, recordSent } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-const ENV = {
-  ...process.env,
-  PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}`,
-};
 
 // AppleScript 문자열 이스케이프 (백슬래시, 큰따옴표)
 function esc(s: string): string {
@@ -16,7 +13,7 @@ function esc(s: string): string {
 }
 
 function runOsa(script: string): { ok: boolean; out: string } {
-  const r = spawnSync("osascript", ["-e", script], { env: ENV });
+  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
   const out = (r.stdout?.toString() || "").trim();
   const err = (r.stderr?.toString() || "").trim();
   return { ok: r.status === 0 && out !== "notfound", out: out || err };

@@ -1,14 +1,11 @@
 // 세션의 iTerm 탭을 찾아 화면 앞으로 가져온다 (이미 열린 세션으로 "이동").
 // 복구가 "이미 열림"으로 스킵한 세션을, 사용자가 창 더미에서 못 찾을 때 바로 띄워준다.
 import { spawnSync } from "node:child_process";
+import { OSA_ENV } from "@/lib/osaEnv";
 import { getSession } from "@/lib/db";
 
 export const runtime = "nodejs";
 
-const ENV = {
-  ...process.env,
-  PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}`,
-};
 
 function esc(s: string): string {
   return s.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
@@ -53,7 +50,7 @@ export async function POST(req: Request) {
   end repeat
 end tell
 return "notfound"`;
-  const r = spawnSync("osascript", ["-e", script], { env: ENV });
+  const r = spawnSync("osascript", ["-e", script], { env: OSA_ENV });
   const out = (r.stdout?.toString() || "").trim();
   if (r.status === 0 && out === "ok") {
     return Response.json({ ok: true });

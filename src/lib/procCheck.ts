@@ -1,10 +1,7 @@
 // 실제로 살아있는 claude 대화를 프로세스에서 식별 (탭/훅이 아니라 진짜 생존 기준).
 import { spawnSync } from "node:child_process";
 
-const ENV = {
-  ...process.env,
-  PATH: `/opt/homebrew/bin:/usr/local/bin:${process.env.PATH ?? ""}`,
-};
+import { OSA_ENV as ENV } from "./osaEnv";
 
 // 경로 정규화: 끝 슬래시 제거
 export function normPath(p: string): string {
