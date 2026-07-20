@@ -4,6 +4,7 @@ import { runCmd } from "@/lib/osaEnv";
 import os from "node:os";
 import { getSessions } from "@/lib/db";
 import { runningClaude, normPath } from "@/lib/procCheck";
+import { scheduleResumeConfirm } from "@/lib/resumeConfirm";
 
 export const runtime = "nodejs";
 
@@ -43,10 +44,23 @@ export async function POST() {
       script += `  tell w to create tab with default profile\n`;
     }
     script += `  tell current session of w to write text "${esc(cmd)}"\n`;
+    // 만든 탭의 GUID를 모아둔다 — 뒤에서 resume 확인 프롬프트를 확정하기 위해.
+    script += `  set end of guids to (id of current session of w)\n`;
   });
-  script += `end tell\nreturn "ok"`;
+  script += `  return guids\nend tell`;
+  script = script.replace(
+    `tell application "iTerm2"\n`,
+    `tell application "iTerm2"\n  set guids to {}\n`,
+  );
 
-  const r = runCmd("osascript", ["-e", script]);
+  const r = runCmd("osascript", ["-e", script], { timeout: 20000 });
+  // 각 탭의 resume 확인 프롬프트("1. Resume from summary" 등)를 뒤에서 기본값으로 자동 확정.
+  // 안 하면 그 화면에서 멈춰 복구가 안 된 것처럼 보인다. (논블로킹)
+  if (r.status === 0) {
+    for (const g of (r.stdout?.toString() || "").split(",").map((x) => x.trim()).filter(Boolean)) {
+      scheduleResumeConfirm(g);
+    }
+  }
   return r.status === 0
     ? Response.json({ ok: true, count: dead.length })
     : Response.json(

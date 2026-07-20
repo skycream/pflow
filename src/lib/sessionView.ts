@@ -12,6 +12,15 @@ export function isTransientError(reason: string | null | undefined): boolean {
   return /rate limit|temporarily|overloaded|limiting requests|529|503|too many requests/i.test(reason);
 }
 
+// 컨텍스트 압박으로 나는 에러 — 재시도가 아니라 /compact로 대화를 압축해야 풀린다.
+// 예: "The updater failed to start. Please verify you have the latest version of release ..."
+export function needsCompact(reason: string | null | undefined): boolean {
+  if (!reason) return false;
+  return /updater failed to start|context (?:window )?(?:is )?full|prompt is too long|exceeds? the maximum|too many tokens/i.test(
+    reason,
+  );
+}
+
 // 세션 한 줄 요약(마지막 작업)
 export function lastActionLine(s: SessionRow): string {
   return s.just_did || s.last_activity || s.session_title || s.last_event || "—";

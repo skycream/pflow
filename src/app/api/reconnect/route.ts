@@ -3,6 +3,7 @@
 // 스킬/설정을 새로 설치했는데 반영이 안 될 때, 재시작으로 다시 로드시키는 용도.
 import { runCmd } from "@/lib/osaEnv";
 import { getSession } from "@/lib/db";
+import { scheduleResumeConfirm } from "@/lib/resumeConfirm";
 
 export const runtime = "nodejs";
 
@@ -64,12 +65,16 @@ end tell`);
   else
     tell target to create tab with default profile
   end if
-  tell current session of target to write text "${resumeCmd}"
+  set newSession to current session of target
+  tell newSession to write text "${resumeCmd}"
   activate
-end tell
-return "ok"`,
+  return (id of newSession)
+end tell`,
     ]);
-    return (fb.stdout?.toString() || "").trim() === "ok"
+    // 새 탭의 GUID로 resume 확인 프롬프트를 정확히 겨냥해 자동 확정(논블로킹)
+    const newGuid = (fb.stdout?.toString() || "").trim();
+    if (newGuid) scheduleResumeConfirm(newGuid);
+    return newGuid
       ? Response.json({ ok: true, reopened: true })
       : Response.json({ ok: false, error: "탭이 닫혀 있어 새로 열려 했지만 실패" }, { status: 500 });
   }
@@ -100,9 +105,7 @@ return "ok"`,
       repeat with se in sessions of t
         if id of se is "${guid}" then
           delay 1.5
-          tell se to write text "${resume}" newline no
-          delay 0.4
-          tell se to write text "" newline yes
+          tell se to write text "${resume}"
           return "ok"
         end if
       end repeat
@@ -111,9 +114,11 @@ return "ok"`,
   return "notfound"
 end tell`,
     ],
-    { timeout: 6000 }, // 내부 delay 1.9초 + 여유
+    { timeout: 8000 }, // 내부 delay 1.9초(kill 대기+resume) + 여유
   );
   const out = (r.stdout?.toString() || "").trim();
+  // resume 확인 프롬프트를 뒤에서 자동 확정(논블로킹)
+  if (out === "ok") scheduleResumeConfirm(guid);
   return out === "ok"
     ? Response.json({ ok: true, killed: pids.length })
     : Response.json({ ok: false, error: "재접속 주입 실패" }, { status: 500 });

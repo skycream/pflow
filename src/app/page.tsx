@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { SessionRow } from "@/lib/db";
 import { STATUS_WEIGHT, type SessionStatus } from "@/lib/status";
 import { STATUS_META, FRESH_META, freshness, relativeTime } from "@/lib/ui";
-import { isTransientError, needsAttention, lastActionLine, isDead } from "@/lib/sessionView";
+import { isTransientError, needsCompact, needsAttention, lastActionLine, isDead } from "@/lib/sessionView";
 import { useImageUpload } from "@/lib/useImageUpload";
 import type { Project } from "@/components/ProjectCard";
 import { SessionDetail } from "@/components/SessionDetail";
@@ -44,6 +44,7 @@ export default function Home() {
   const sessionsRef = useRef<SessionRow[]>([]);
   sessionsRef.current = sessions;
   const retryRef = useRef<Map<string, number>>(new Map()); // session_id → 재시도 횟수
+  const compactRef = useRef<Map<string, number>>(new Map()); // session_id → 자동 /compact 횟수
   const resumeRef = useRef<Map<string, { at: number; n: number }>>(new Map()); // stuck 교정 dedup+상한
   const [interacting, setInteracting] = useState(false); // 입력 중이면 레일 정렬 freeze
   const lastOrderRef = useRef<string[]>([]); // 마지막 레일 순서(freeze용)
@@ -281,7 +282,13 @@ export default function Home() {
       const i = order.indexOf(root);
       return i === -1 ? Number.MAX_SAFE_INTEGER : i;
     };
+    // 프로젝트의 모든 세션이 죽었으면(💀/종료) "죽은 프로젝트" → 맨 아래로.
+    const allDead = (p: Project) => p.sessions.length > 0 && p.sessions.every(isDead);
     arr.sort((a, b) => {
+      // 0순위: 살아있는 프로젝트 먼저, 죽은 프로젝트는 아래로.
+      const da = allDead(a) ? 1 : 0;
+      const db = allDead(b) ? 1 : 0;
+      if (da !== db) return da - db;
       // 1순위: 내가 수동으로 정한 순서. 안 정한 건 즐겨찾기→이름순(고정).
       const oa = ordIdx(a.root);
       const ob = ordIdx(b.root);
@@ -559,6 +566,23 @@ export default function Home() {
     const RETRY_CAP = 30;
     const iv = setInterval(() => {
       for (const s of sessionsRef.current) {
+        // 컨텍스트 압박 에러("updater failed to start" 등)는 재시도가 아니라 /compact로 푼다.
+        if (s.status === "error" && needsCompact(s.error_reason)) {
+          const n = compactRef.current.get(s.session_id) ?? 0;
+          if (n >= 2) continue; // 같은 세션에 compact를 반복 남발하지 않게 상한
+          compactRef.current.set(s.session_id, n + 1);
+          fetch("/api/send", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              session_id: s.session_id,
+              text: "/compact",
+              enter: true,
+              display: "🗜️ 자동 /compact (컨텍스트 부족 감지)",
+            }),
+          }).catch(() => {});
+          continue;
+        }
         if (s.status === "error" && isTransientError(s.error_reason)) {
           const n = retryRef.current.get(s.session_id) ?? 0;
           if (n >= RETRY_CAP) continue;
@@ -574,6 +598,7 @@ export default function Home() {
             }),
           }).catch(() => {});
         } else {
+          compactRef.current.delete(s.session_id);
           retryRef.current.delete(s.session_id); // 복구/비에러면 리셋
         }
       }
