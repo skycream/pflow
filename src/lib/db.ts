@@ -298,11 +298,22 @@ function extractFlow(transcriptPath: string): {
       } else if (role === "user") {
         // 도구 결과(tool_result)만 있는 user 턴은 건너뛰고, 실제 입력 텍스트만 캡처
         let ut = textOf();
-        // 훅이 주입한 [관제] 지시 + system-reminder 블록은 질문 표시에서 제거
+        // user 역할이라도 "사람이 친 말"이 아닌 것들이 섞여 들어온다.
+        // (훅 주입 지시, system-reminder, 백그라운드 작업 완료 알림, 슬래시 명령 출력 등)
+        // 이걸 안 지우면 "내가 말한 적 없는 내용"이 내 질문으로 표시된다.
         ut = ut
           .replace(/<system-reminder>[\s\S]*?<\/system-reminder>/g, "")
+          .replace(/<task-notification>[\s\S]*?<\/task-notification>/g, "")
+          .replace(/<local-command-[\s\S]*?<\/local-command-[a-z]+>/g, "")
+          .replace(/<command-(?:name|message|args)>[\s\S]*?<\/command-[a-z]+>/g, "")
+          .replace(/\[SYSTEM NOTIFICATION[\s\S]*?(?=\n\n|$)/g, "")
           .replace(/\[관제][\s\S]*?관제 대시보드가 읽는다\.?/g, "")
           .trim();
+        // 슬래시 명령/스킬 확장 본문("# /loop — …" 로 시작하는 지시문 전체)은 사람이 친 말이 아니다.
+        // 사용자가 실제로 친 건 "/loop ..." 한 줄이므로, 명령 이름만 남긴다.
+        const cmdExpand = ut.match(/^#\s*(\/[\w-]+)\s*[—-]/);
+        if (cmdExpand) ut = cmdExpand[1];
+        // 남은 게 없으면(=주입 메시지뿐이었음) 직전의 진짜 사용자 발화를 유지한다.
         if (ut) lastUserText = ut;
       }
     }
