@@ -796,7 +796,15 @@ export function SessionAccordion({
                     }`}
                   >
                     {st.request && (
-                      <p className="truncate text-xs text-zinc-400 dark:text-zinc-500">
+                      <p
+                        style={{
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          overflow: "hidden",
+                        }}
+                        className="text-xs text-zinc-400 dark:text-zinc-500"
+                      >
                         <span className="text-zinc-300 dark:text-zinc-600">요청 </span>
                         {st.request}
                       </p>
@@ -818,29 +826,39 @@ export function SessionAccordion({
                   </button>
                 </div>
 
-                {/* 답변 있는 최근 step: 항상 전체 펼침(클립·클릭 없음). 질문은 선택 토글. */}
+                {/* 답변 있는 최근 step: 내 질문 + 답변을 항상 함께 펼친다.
+                    (내가 뭘 물었는지 안 보이면 답변만으로 맥락을 잃는다 — 기본 표시가 맞다.)
+                    질문이 아주 길면 접어두고 클릭해서 펼치게 한다. */}
                 {showAnswer && st.full_answer && (
                   <div
                     style={{ backgroundColor: "#0a0a0a", borderColor: "#3f3f46" }}
                     className="mt-1.5 rounded-md border px-3 py-2"
                   >
-                    {isOpen && st.full_request && (
+                    {st.full_request && (
                       <div className="mb-2">
                         <p className="text-xs font-medium text-emerald-400">🧑 나</p>
-                        <Markdown terminal>{st.full_request}</Markdown>
+                        <div
+                          style={
+                            !isOpen && st.full_request.length > 400
+                              ? { maxHeight: "7.5rem", overflow: "hidden" }
+                              : undefined
+                          }
+                        >
+                          <Markdown terminal>{st.full_request}</Markdown>
+                        </div>
+                        {st.full_request.length > 400 && (
+                          <button
+                            type="button"
+                            onClick={() => toggleStep(st.id)}
+                            className="text-xs text-zinc-500 hover:text-zinc-300"
+                          >
+                            {isOpen ? "질문 접기 ▴" : "⋯ 질문 전체 보기 ▾"}
+                          </button>
+                        )}
                         <p className="mt-2 text-xs font-medium text-zinc-400">🤖 Claude</p>
                       </div>
                     )}
                     <Markdown terminal>{st.full_answer}</Markdown>
-                    {st.full_request && (
-                      <button
-                        type="button"
-                        onClick={() => toggleStep(st.id)}
-                        className="mt-1 text-xs text-zinc-500 hover:text-zinc-300"
-                      >
-                        {isOpen ? "질문 숨기기 ▴" : "🧑 내 질문 보기 ▾"}
-                      </button>
-                    )}
                   </div>
                 )}
 
