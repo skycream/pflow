@@ -22,6 +22,46 @@ export function normPath(p: string): string {
   }
 }
 
+// 세션의 iTerm 탭에서 claude가 실제로 돌고 있는 GUID 집합.
+// cwd 매칭은 세션이 claude 안에서 cd로 폴더를 옮기면(상위/하위 어디로든) 어긋나지만,
+// "그 탭에 claude 프로세스가 있는가"는 위치와 무관하게 정확하다.
+export function claudeTabGuids(): Set<string> {
+  const guids = new Set<string>();
+
+  // 1) claude가 돌고 있는 tty 집합 (ps 표기: "ttys006")
+  const ps = runCmd("ps", ["-Ao", "tty=,comm="]);
+  if (spawnFailed(ps)) return guids;
+  const claudeTtys = new Set<string>();
+  for (const line of (ps.stdout?.toString() || "").split("\n")) {
+    const m = line.trim().match(/^(\S+)\s+(.*)$/);
+    if (m && /(^|\/)claude$/.test(m[2].trim())) claudeTtys.add(m[1]);
+  }
+  if (claudeTtys.size === 0) return guids;
+
+  // 2) iTerm 세션들의 GUID+tty를 한 번에 수집해 매칭
+  const osa = runCmd("osascript", [
+    "-e",
+    `tell application "iTerm2"
+  set out to ""
+  repeat with w in windows
+    repeat with t in tabs of w
+      repeat with s in sessions of t
+        set out to out & (id of s) & "|" & (tty of s) & "\\n"
+      end repeat
+    end repeat
+  end repeat
+  return out
+end tell`,
+  ]);
+  if (spawnFailed(osa)) return guids;
+  for (const line of (osa.stdout?.toString() || "").split("\n")) {
+    const [guid, tty] = line.trim().split("|");
+    if (!guid || !tty?.startsWith("/dev/")) continue;
+    if (claudeTtys.has(tty.replace("/dev/", ""))) guids.add(guid);
+  }
+  return guids;
+}
+
 // - cwds: claude가 실행 중인 작업폴더 집합
 // - ids:  `claude --resume <id>`로 떠 있는 세션 id 집합 (더 정확한 매칭)
 // - reliable: 프로세스 조회가 신뢰할 만한가. false면 조회 실패(도구 못 찾음/타임아웃)로

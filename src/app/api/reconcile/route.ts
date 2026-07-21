@@ -4,12 +4,13 @@
 // - ended: SessionEnd로 종료된 것 → 건드리지 않음(별도 "종료" 표시)
 import os from "node:os";
 import { getSessions, markDead, reviveSession } from "@/lib/db";
-import { runningClaude, normPath } from "@/lib/procCheck";
+import { runningClaude, normPath, claudeTabGuids } from "@/lib/procCheck";
 
 export const runtime = "nodejs";
 
 export async function POST() {
   const { cwds, ids, reliable } = runningClaude();
+  const tabGuids = claudeTabGuids(); // 탭 기준 생존 신호(cd 이동에 안 흔들림)
   const home = os.homedir();
   let changed = 0;
 
@@ -34,7 +35,11 @@ export async function POST() {
       const nc = normPath(c);
       return nc === sRoot || nc.startsWith(sRoot + "/"); // 루트 자체이거나 그 하위
     });
-    const alive = ids.has(s.session_id.toLowerCase()) || cwdAlive;
+    // 가장 정확한 신호: 이 세션의 iTerm 탭에서 claude가 실제로 돌고 있는가.
+    // 세션이 claude 안에서 cd로 폴더를 옮기면 cwd 매칭은 어긋나지만 이건 안 어긋난다.
+    const guid = (s.iterm_id || "").split(":").pop() || "";
+    const tabAlive = !!guid && tabGuids.has(guid);
+    const alive = ids.has(s.session_id.toLowerCase()) || tabAlive || cwdAlive;
     // 조회가 불안정(도구 실패)하면 "죽음" 판정은 보류 — 살아있는데 죽음으로 찍는 오탐 방지.
     // 단 "살아있음"으로 dead 해제하는 건 안전하니 허용.
     if (!alive && !reliable) continue;
