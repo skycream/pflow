@@ -8,6 +8,17 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
+// 링크 클릭 → 사파리 새 탭에서 열기. 대시보드가 그 주소로 넘어가지 않게 기본동작 막고 서버에 위임.
+function openInSafari(e: React.MouseEvent<HTMLAnchorElement>, href?: string) {
+  if (!href || !/^https?:\/\//i.test(href)) return; // http(s)만 가로챔
+  e.preventDefault();
+  fetch("/api/open-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: href }),
+  }).catch(() => window.open(href, "_blank", "noopener")); // 실패 시 폴백
+}
+
 // 터미널 모드 글자색 — prose-invert 클래스 생성에 의존하지 않고 변수로 직접 밝게.
 const TERMINAL_VARS = {
   color: "#e4e4e7",
@@ -44,8 +55,16 @@ export const Markdown = memo(function Markdown({
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeHighlight]}
         components={{
-          // 답변 속 링크는 새 탭에서 — 대시보드가 그 주소로 넘어가지 않게
-          a: ({ node, ...props }) => <a {...props} target="_blank" rel="noopener noreferrer" />,
+          // 답변 속 링크는 클릭 시 사파리 새 탭에서 (plain URL도 remark-gfm이 자동 링크로 만듦)
+          a: ({ node, href, ...props }) => (
+            <a
+              {...props}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => openInSafari(e, href)}
+            />
+          ),
         }}
       >
         {children}
