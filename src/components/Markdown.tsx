@@ -8,15 +8,55 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 
+import React from "react";
+
 // 링크 클릭 → 사파리 새 탭에서 열기. 대시보드가 그 주소로 넘어가지 않게 기본동작 막고 서버에 위임.
-function openInSafari(e: React.MouseEvent<HTMLAnchorElement>, href?: string) {
+function openInSafari(href?: string) {
   if (!href || !/^https?:\/\//i.test(href)) return; // http(s)만 가로챔
-  e.preventDefault();
   fetch("/api/open-url", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: href }),
   }).catch(() => window.open(href, "_blank", "noopener")); // 실패 시 폴백
+}
+
+function onLinkClick(e: React.MouseEvent<HTMLAnchorElement>, href?: string) {
+  if (!href || !/^https?:\/\//i.test(href)) return;
+  e.preventDefault();
+  openInSafari(href);
+}
+
+// 코드(인라인/블록) 안의 URL을 클릭 가능한 링크로. rehype-highlight가 만든 자식 노드는
+// 그대로 두고, 순수 문자열 조각에서만 URL을 찾아 <a>로 감싼다.
+const URL_RE = /(https?:\/\/[^\s<>()"'`\]]+)/g;
+function linkifyCode(children: React.ReactNode): React.ReactNode {
+  return React.Children.map(children, (child) => {
+    if (typeof child !== "string") return child; // 하이라이팅된 span 등은 건드리지 않음
+    if (!URL_RE.test(child)) return child;
+    URL_RE.lastIndex = 0;
+    const parts: React.ReactNode[] = [];
+    let last = 0;
+    let m: RegExpExecArray | null;
+    while ((m = URL_RE.exec(child)) !== null) {
+      if (m.index > last) parts.push(child.slice(last, m.index));
+      const url = m[1];
+      parts.push(
+        <a
+          key={m.index}
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "#93c5fd", textDecoration: "underline", cursor: "pointer" }}
+          onClick={(e) => onLinkClick(e, url)}
+        >
+          {url}
+        </a>,
+      );
+      last = m.index + url.length;
+    }
+    if (last < child.length) parts.push(child.slice(last));
+    return parts;
+  });
 }
 
 // 터미널 모드 글자색 — prose-invert 클래스 생성에 의존하지 않고 변수로 직접 밝게.
@@ -62,8 +102,12 @@ export const Markdown = memo(function Markdown({
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              onClick={(e) => openInSafari(e, href)}
+              onClick={(e) => onLinkClick(e, href)}
             />
+          ),
+          // 코드블록/인라인 코드 안의 URL도 클릭 가능하게 링크로 감싼다.
+          code: ({ node, children, ...props }) => (
+            <code {...props}>{linkifyCode(children)}</code>
           ),
         }}
       >
