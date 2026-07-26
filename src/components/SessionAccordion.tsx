@@ -167,6 +167,19 @@ export function SessionAccordion({
   const [sendText, setSendText] = useState("");
   const [sent, setSent] = useState<string | null>(null); // 방금 전송한 내용 (피드백)
   const [sendErr, setSendErr] = useState("");
+  // 낙관적 표시: 보낸 즉시 화면에 내 메시지를 띄운다(서버 SSE 왕복 기다리지 않음).
+  // 서버의 recentSent가 같은 내용으로 도착하면 중복 제거되고, 답변 오면 사라진다.
+  const [optimistic, setOptimistic] = useState<{ id: string; text: string; at: number }[]>([]);
+
+  // 낙관적 항목 정리: 서버 recentSent에 같은 내용이 잡혔으면(=서버 반영됨) 제거.
+  // 30초 지나도 서버에 안 잡히면(주입 실패 등) 유령이 안 남게 지운다.
+  useEffect(() => {
+    if (optimistic.length === 0) return;
+    const serverTexts = new Set((session.recentSent ?? []).map((m) => m.text));
+    setOptimistic((prev) =>
+      prev.filter((o) => !serverTexts.has(o.text) && Date.now() - o.at < 30000),
+    );
+  }, [session.recentSent, session.last_event_at, optimistic.length]);
   const [dragOver, setDragOver] = useState(false);
   // 페이지에서 내려준 공유 업로드가 있으면 그걸 쓰고, 없으면 내부 훅 사용
   const internalUpload = useImageUpload();
@@ -206,6 +219,10 @@ export function SessionAccordion({
   function fire(text: string, enter: boolean, label: string, reqDisplay?: string) {
     setSent(label);
     setSendErr("");
+    // 낙관적 표시: 보낸 즉시 내 메시지를 '응답중'으로 화면에 올린다.
+    const optId = `opt-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const optText = reqDisplay ?? text;
+    setOptimistic((prev) => [...prev, { id: optId, text: optText, at: Date.now() }]);
     fetch("/api/send", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -216,11 +233,13 @@ export function SessionAccordion({
         if (!d.ok) {
           setSent(null);
           setSendErr(`에러: ${d.error}`);
+          setOptimistic((prev) => prev.filter((o) => o.id !== optId)); // 실패 시 낙관적 항목 제거
         }
       })
       .catch(() => {
         setSent(null);
         setSendErr("전송 실패");
+        setOptimistic((prev) => prev.filter((o) => o.id !== optId));
       });
     setTimeout(() => setSent(null), 6000); // 폴백: SSE 안 와도 복귀
   }
@@ -583,6 +602,8 @@ export function SessionAccordion({
     if (session.dead || session.status === "ended") {
       setSent("되살리는 중… 곧 전송");
       setSendErr("");
+      const optId = `opt-${Date.now()}`;
+      setOptimistic((prev) => [...prev, { id: optId, text: display, at: Date.now() }]);
       fetch("/api/revive", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -736,24 +757,36 @@ export function SessionAccordion({
       )}
 
       {/* 내가 보낸 요청 — 응답 대기중인 것만. 응답이 오면 자동으로 사라짐. */}
-      {pendingSent.length > 0 && (
-        <div className="border-t border-amber-100 bg-amber-50/60 px-4 py-2 dark:border-zinc-800 dark:bg-amber-500/5">
-          <p className="mb-1 text-xs font-medium text-amber-700 dark:text-amber-300">
-            📤 보낸 요청 · 응답 대기중
-          </p>
-          {pendingSent.map((m) => (
-            <div key={m.id} className="flex items-start gap-2">
-              <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400 flow-working" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm text-zinc-800 dark:text-zinc-100">{m.text}</p>
-                <p className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
-                  {relativeTime(m.created_at, now)}
-                </p>
+      {(() => {
+        // 낙관적 항목 + 서버 pending을 합쳐 표시(내용 중복 제거 — 낙관적이 우선).
+        const optKeys = new Set(optimistic.map((o) => o.text));
+        const rows = [
+          ...optimistic.map((o) => ({ id: o.id, text: o.text, created_at: o.at })),
+          ...pendingSent
+            .filter((m) => !optKeys.has(m.text))
+            .map((m) => ({ id: String(m.id), text: m.text, created_at: m.created_at })),
+        ];
+        if (rows.length === 0) return null;
+        return (
+          <div className="border-t border-amber-100 bg-amber-50/60 px-4 py-2 dark:border-zinc-800 dark:bg-amber-500/5">
+            <p className="mb-1 flex items-center gap-1.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+              <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-400 flow-working" />
+              🧑 내 요청 · 응답중…
+            </p>
+            {rows.map((m) => (
+              <div key={m.id} className="flex items-start gap-2">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-amber-400 flow-working" />
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm text-zinc-800 dark:text-zinc-100">{m.text}</p>
+                  <p className="font-mono text-xs text-zinc-400 dark:text-zinc-500">
+                    {relativeTime(m.created_at, now)}
+                  </p>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        );
+      })()}
 
       {/* 본문: 진행 단계(최근 2개, 펼치면 전체) — 없으면 폴백 한 줄 */}
       {shown.length > 0 ? (
