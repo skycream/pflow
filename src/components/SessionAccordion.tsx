@@ -1191,12 +1191,14 @@ export function SessionAccordion({
               <option value="" disabled>
                 🤖 모델
               </option>
+              {/* 별칭만 표기 — 버전 번호를 박으면 모델 업데이트 때마다 낡는다.
+                  /model <별칭>은 항상 최신 버전으로 자동 연결된다. */}
               <option value="default">기본(default)</option>
-              <option value="fable">Fable 5</option>
-              <option value="opus">Opus 4.8</option>
-              <option value="sonnet">Sonnet 4.6</option>
-              <option value="haiku">Haiku 4.5</option>
-              <option value="opusplan">Opus Plan(계획=Opus 4.8·실행=Sonnet 4.6)</option>
+              <option value="fable">Fable</option>
+              <option value="opus">Opus</option>
+              <option value="sonnet">Sonnet</option>
+              <option value="haiku">Haiku</option>
+              <option value="opusplan">Opus Plan(계획=Opus·실행=Sonnet)</option>
             </select>
             <span className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
             <button
