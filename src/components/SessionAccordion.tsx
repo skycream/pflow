@@ -40,6 +40,8 @@ const HINT = {
     "이 프로젝트의 대시보드(개발 서버/미리보기)를 실행해서 사파리 새 창으로 띄워줘. 이미 실행 중이면 그 주소를 사파리로 열고, 아니면 서버를 켠 뒤 열어줘.",
   explain:
     "방금 답변/작업을 비전문가도 이해할 수 있게 더 상세하고 쉽게 설명해줘. 전문 용어는 풀어서 쓰고, 필요하면 비유와 구체적인 예시를 들어줘. 무엇을·왜·어떻게 했는지 순서대로, 결론부터 말한 뒤 근거를 덧붙이는 방식으로.",
+  discuss:
+    "지금까지 수행한 것들을 각각 하나의 안건으로 지정하고, 순서대로 하나씩 토론해서 상세와 방향을 함께 결정하자. 먼저 전체 안건 목록을 번호로 정리해서 보여주고 내 확인을 받아. 그다음 1번 안건부터 하나씩 진행하는데, 각 안건마다 (1) 현재 상태와 내가 내린 결정을 요약하고 (2) 아직 안 정해졌거나 다시 볼 지점·트레이드오프·리스크를 짚고 (3) 너의 추천안을 근거와 함께 제시한 뒤 (4) 나에게 질문해서 방향을 확정해줘. 내가 확정하면 다음 안건으로 넘어가고, 한 번에 한 안건씩만 다뤄. 절대 여러 안건을 몰아서 처리하지 마.",
   prd: PRD_PROMPT,
   uiGuide: UI_GUIDE_PROMPT,
   userTest: USERTEST_PRD,
@@ -368,6 +370,9 @@ export function SessionAccordion({
   }
   function explainMore() {
     fire(HINT.explain, true, "쉽게 설명", "🧑‍🏫 더 상세하고 쉽게 설명");
+  }
+  function discussEach() {
+    fire(HINT.discuss, true, "안건별 토론", "🗣️ 안건별 순차 토론");
   }
   function designMockup() {
     fire(
@@ -1232,6 +1237,13 @@ export function SessionAccordion({
               className="rounded-full border border-emerald-400 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
             >
               🧑‍🏫 쉽게 설명
+            </button>
+            <button
+              onClick={discussEach}
+              data-hint={HINT.discuss}
+              className="rounded-full border border-emerald-400 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+            >
+              🗣️ 안건별 토론
             </button>
             <button
               onClick={proposeSolution}
