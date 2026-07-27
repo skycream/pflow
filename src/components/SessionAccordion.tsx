@@ -36,6 +36,8 @@ const HINT = {
   deploy:
     "이 프로젝트를 Neon(Postgres) + Google Cloud Run에 배포해줘. `/deploy-neon-cloudrun` 스킬을 사용해서 진행해 — 컨테이너화, Neon DB 연결(DATABASE_URL), Cloud Run 배포, scale-to-zero까지. 필요한 정보(프로젝트 ID·리전 등)는 나에게 물어봐.",
   safari: "지금 만들고 있는 프로젝트(목업/미리보기)를 사파리 창으로 띄워서 보여줘.",
+  dashboard:
+    "이 프로젝트의 대시보드(개발 서버/미리보기)를 실행해서 사파리 새 창으로 띄워줘. 이미 실행 중이면 그 주소를 사파리로 열고, 아니면 서버를 켠 뒤 열어줘.",
   prd: PRD_PROMPT,
   uiGuide: UI_GUIDE_PROMPT,
   userTest: USERTEST_PRD,
@@ -359,6 +361,9 @@ export function SessionAccordion({
     fire(UI_GUIDE_PROMPT, true, "디자인시스템", "🧩 디자인 시스템/UI 가이드");
   }
   // 디자인/목업: frontend-design 스킬 + AIDesigner + Playwright로 시안 만들고 스크린샷
+  function openDashboard() {
+    fire(HINT.dashboard, true, "대시보드 띄우기", "📊 대시보드 창 띄워줘");
+  }
   function designMockup() {
     fire(
       "frontend-design 스킬로 디자인 방향(미감·타이포·컬러·무드)부터 정하고, AIDesigner(MCP/스킬)로 목업·시안을 만든 뒤, Playwright MCP로 스크린샷을 찍어 보여줘.",
@@ -1174,6 +1179,14 @@ export function SessionAccordion({
               className="rounded-full border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
             >
               🪟
+            </button>
+            <button
+              onClick={openDashboard}
+              data-hint={HINT.dashboard}
+              title="대시보드 창 띄워줘 (개발서버·미리보기를 사파리로)"
+              className="rounded-full border border-zinc-300 px-2 py-1 text-sm hover:bg-zinc-100 dark:border-zinc-600 dark:hover:bg-zinc-800"
+            >
+              📊
             </button>
             <button
               onClick={revealTab}
