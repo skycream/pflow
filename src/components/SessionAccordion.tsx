@@ -38,6 +38,8 @@ const HINT = {
   safari: "지금 만들고 있는 프로젝트(목업/미리보기)를 사파리 창으로 띄워서 보여줘.",
   dashboard:
     "이 프로젝트의 대시보드(개발 서버/미리보기)를 실행해서 사파리 새 창으로 띄워줘. 이미 실행 중이면 그 주소를 사파리로 열고, 아니면 서버를 켠 뒤 열어줘.",
+  explain:
+    "방금 답변/작업을 비전문가도 이해할 수 있게 더 상세하고 쉽게 설명해줘. 전문 용어는 풀어서 쓰고, 필요하면 비유와 구체적인 예시를 들어줘. 무엇을·왜·어떻게 했는지 순서대로, 결론부터 말한 뒤 근거를 덧붙이는 방식으로.",
   prd: PRD_PROMPT,
   uiGuide: UI_GUIDE_PROMPT,
   userTest: USERTEST_PRD,
@@ -363,6 +365,9 @@ export function SessionAccordion({
   // 디자인/목업: frontend-design 스킬 + AIDesigner + Playwright로 시안 만들고 스크린샷
   function openDashboard() {
     fire(HINT.dashboard, true, "대시보드 띄우기", "📊 대시보드 창 띄워줘");
+  }
+  function explainMore() {
+    fire(HINT.explain, true, "쉽게 설명", "🧑‍🏫 더 상세하고 쉽게 설명");
   }
   function designMockup() {
     fire(
@@ -1220,6 +1225,13 @@ export function SessionAccordion({
               className="rounded-full border border-emerald-400 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
             >
               🧭 다음 작업 추천받기
+            </button>
+            <button
+              onClick={explainMore}
+              data-hint={HINT.explain}
+              className="rounded-full border border-emerald-400 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-100 dark:border-emerald-500/40 dark:bg-emerald-500/10 dark:text-emerald-200 dark:hover:bg-emerald-500/20"
+            >
+              🧑‍🏫 쉽게 설명
             </button>
             <button
               onClick={proposeSolution}
