@@ -9,7 +9,9 @@ export function isDead(s: SessionRow): boolean {
 // 일시적(재시도하면 풀리는) 에러인지 — rate limit / 과부하 / 일시 제한
 export function isTransientError(reason: string | null | undefined): boolean {
   if (!reason) return false;
-  return /rate limit|temporarily|overloaded|limiting requests|529|503|too many requests/i.test(reason);
+  return /rate limit|temporarily|overloaded|limiting requests|too many requests|internal server error|api error:?\s*5\d\d|\b(500|502|503|504|529)\b|overloaded_error|service unavailable|bad gateway|gateway timeout|unable to connect|ENOTFOUND|ECONNRESET|ETIMEDOUT|fetch failed/i.test(
+    reason,
+  );
 }
 
 // 컨텍스트 압박으로 나는 에러 — 재시도가 아니라 /compact로 대화를 압축해야 풀린다.
