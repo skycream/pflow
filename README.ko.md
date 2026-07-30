@@ -140,6 +140,18 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.projectflow.dashboar
 
 모든 데이터는 로컬에만 저장됩니다 (`data/` — gitignore됨). 외부 전송 없음.
 
+## 문제 해결
+
+- **서버 재시작** — 대시보드는 launchd(KeepAlive)가 관리하므로 프로세스를 `kill`해도 즉시 되살아납니다. 재시작은 반드시 이렇게:
+  ```bash
+  launchctl kickstart -k gui/$(id -u)/com.projectflow.dashboard
+  ```
+- **`Cannot find module '@swc/helpers-…'` 등 모듈 로드 에러** — `next.config.ts` 변경 후 남은 낡은 빌드 캐시가 원인입니다. 캐시를 지우고 재시작하세요:
+  ```bash
+  rm -rf .next && launchctl kickstart -k gui/$(id -u)/com.projectflow.dashboard
+  ```
+- **컴파일이 수십 초씩 걸림** — 홈(`~/`)에 다른 `package-lock.json`이 있으면 Next.js가 홈 전체를 워크스페이스 루트로 오인해 폴더를 통째로 스캔합니다. `next.config.ts`의 `turbopack.root` 고정 설정이 이를 방지합니다(기본 포함).
+
 ## License
 
 MIT

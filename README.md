@@ -140,6 +140,18 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.projectflow.dashboar
 
 Everything stays on your machine (`data/` — gitignored). Nothing is sent anywhere.
 
+## Troubleshooting
+
+- **Restarting the server** — the dashboard is managed by launchd (KeepAlive), so a plain `kill` brings it right back. Restart it properly with:
+  ```bash
+  launchctl kickstart -k gui/$(id -u)/com.projectflow.dashboard
+  ```
+- **`Cannot find module '@swc/helpers-…'` or similar module-load errors** — stale build cache left over after a `next.config.ts` change. Clear it and restart:
+  ```bash
+  rm -rf .next && launchctl kickstart -k gui/$(id -u)/com.projectflow.dashboard
+  ```
+- **Compiles taking tens of seconds** — a stray `package-lock.json` in your home directory makes Next.js mistake `~/` for the workspace root and scan it wholesale. The pinned `turbopack.root` in `next.config.ts` prevents this (included by default).
+
 ## License
 
 MIT
